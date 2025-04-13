@@ -69,6 +69,18 @@ func main() {
 	{
 		protected.GET("/users", controllers.NewUserController(db).GetAllUsers)
 		protected.GET("/users/:id", controllers.NewUserController(db).GetUserByID)
+		protected.PUT("/users/:id", controllers.NewUserController(db).UpdateUser)
+		protected.DELETE("/users/:id", controllers.NewUserController(db).DeleteUser)
+		protected.GET("/places", controllers.NewRoomController(db).GetAllPlaces)
+		protected.GET("/places/:id", controllers.NewRoomController(db).GetPlaceByID)
+		protected.GET("/rooms", controllers.NewRoomController(db).GetAllRooms)
+		protected.GET("/rooms/:id", controllers.NewRoomController(db).GetRoomByID)
+		protected.GET("/rooms/place/:place_id", controllers.NewRoomController(db).GetRoomsByPlaceID)
+		protected.GET("/rooms/console/:console_type", controllers.NewRoomController(db).GetRoomsByConsoleType)
+		protected.GET("/bookings", controllers.NewBookingController(db).GetAllBookings)
+		protected.GET("/bookings/:id", controllers.NewBookingController(db).GetBookingByID)
+		protected.POST("/bookings", controllers.NewBookingController(db).CreateBooking)
+		protected.PATCH("/bookings/:id", controllers.NewBookingController(db).UpdateBookingStatus)
 	}
 
 	// Start server	on port 8080
