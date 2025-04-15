@@ -35,13 +35,5 @@ type Booking struct {
 	EndTime    time.Time  `json:"end_time" gorm:"type:time"`
 	TotalPrice float32    `json:"total_price"`
 	BookStatus BookStatus `json:"book_status" gorm:"type:varchar(20)"`
-}
-
-type Rating struct {
-	gorm.Model
-	BookingId int     `json:"booking_id"`
-	UserId    int     `json:"user_id"`
-	PlaceId   int     `json:"place_id"`
-	RoomId    int     `json:"room_id"`
-	Rating    float32 `json:"rating"`
+	Rating     float32    `json:"rating"`
 }

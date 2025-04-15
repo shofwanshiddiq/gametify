@@ -38,7 +38,7 @@ func main() {
 	db := config.ConnectDatabase()
 
 	// Auto migrate the models to database
-	db.AutoMigrate(&models.User{}, &models.Place{}, &models.Rating{}, &models.Room{}, &models.Booking{}, &models.Package{})
+	db.AutoMigrate(&models.User{}, &models.Place{}, &models.Room{}, &models.Booking{}, &models.Package{})
 
 	//  route
 	r.GET("/", func(c *gin.Context) {
@@ -81,6 +81,9 @@ func main() {
 		protected.GET("/bookings/:id", controllers.NewBookingController(db).GetBookingByID)
 		protected.POST("/bookings", controllers.NewBookingController(db).CreateBooking)
 		protected.PATCH("/bookings/:id", controllers.NewBookingController(db).UpdateBookingStatus)
+		protected.POST("/bookings/:id/rate", controllers.NewBookingController(db).PostBookingRating)
+		protected.GET("/bookings/room/:room_id", controllers.NewBookingController(db).GetAverageRoomRating)
+		protected.GET("/bookings/place/:place_id", controllers.NewBookingController(db).GetAverageRatingByPlace)
 	}
 
 	// Start server	on port 8080
