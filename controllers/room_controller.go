@@ -72,3 +72,12 @@ func (r *RoomController) GetRoomsByConsoleType(c *gin.Context) {
 	}
 	c.JSON(200, rooms)
 }
+
+func (r *RoomController) GetConsoleTypes(c *gin.Context) {
+	consoleTypes := []models.ConsoleType{
+		models.TypePC,
+		models.TypePS4,
+		models.TypePS5,
+	}
+	c.JSON(200, consoleTypes)
+}

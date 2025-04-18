@@ -14,9 +14,10 @@ fullname
 
 type User struct {
 	gorm.Model
-	Name     string `json:"name"`
-	Email    string `json:"email" gorm:"unique"`
-	Password string `json:"password"`
+	Name           string `json:"name"`
+	Email          string `json:"email" gorm:"unique"`
+	Password       string `json:"password"`
+	ProfilePicture string `json:"profile_picture"`
 }
 
 type LoginRequest struct {
