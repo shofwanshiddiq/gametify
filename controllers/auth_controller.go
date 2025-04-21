@@ -2,45 +2,29 @@ package controllers
 
 import (
 	"gametify/models"
-	"gametify/utils"
+	"gametify/services"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type AuthController struct {
-	DB *gorm.DB
+	service services.AuthService
 }
 
-func NewAuthController(db *gorm.DB) *AuthController {
-	return &AuthController{DB: db}
+func NewAuthController(service services.AuthService) *AuthController {
+	return &AuthController{service}
 }
 
 func (ac *AuthController) Register(c *gin.Context) {
 	var user models.User
-
-	// Validasi Input Harus JSON
 	if err := c.ShouldBindJSON(&user); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	// Hash Password
-	if err := user.HashPassword(user.Password); err != nil {
-		c.JSON(500, gin.H{"error": "Failed to hash password"})
-		return
-	}
-
-	// Create to Database
-	if err := ac.DB.Create(&user).Error; err != nil {
-		c.JSON(500, gin.H{"error": "Failed to create user"})
-		return
-	}
-
-	// Generate Token
-	token, err := utils.GenerateToken(user.ID)
+	token, err := ac.service.Register(&user)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to generate token"})
+		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -49,30 +33,14 @@ func (ac *AuthController) Register(c *gin.Context) {
 
 func (ac *AuthController) Login(c *gin.Context) {
 	var loginRequest models.LoginRequest
-
-	// Validasi Input Harus JSON
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
 		c.JSON(400, gin.H{"error": "Invalid request body"})
 		return
 	}
 
-	// Get User by Email
-	var user models.User
-	if err := ac.DB.Where("email = ?", loginRequest.Email).First(&user).Error; err != nil {
-		c.JSON(401, gin.H{"error": "Invalid email or password"})
-		return
-	}
-
-	// Check Password
-	if err := user.CheckPassword(loginRequest.Password); err != nil {
-		c.JSON(401, gin.H{"error": "Invalid email or password"})
-		return
-	}
-
-	// Generate Token
-	token, err := utils.GenerateToken(user.ID)
+	token, err := ac.service.Login(loginRequest.Email, loginRequest.Password)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Failed to generate token"})
+		c.JSON(401, gin.H{"error": "Invalid email or password"})
 		return
 	}
 

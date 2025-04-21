@@ -2,22 +2,22 @@ package controllers
 
 import (
 	"gametify/models"
+	"gametify/services"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
 )
 
 type RoomController struct {
-	DB *gorm.DB
+	roomService services.RoomService
 }
 
-func NewRoomController(db *gorm.DB) *RoomController {
-	return &RoomController{DB: db}
+func NewRoomController(roomService services.RoomService) *RoomController {
+	return &RoomController{roomService}
 }
 
 func (r *RoomController) GetAllPlaces(c *gin.Context) {
-	var places []models.Place
-	if err := r.DB.Find(&places).Error; err != nil {
+	places, err := r.roomService.GetAllPlaces()
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -26,8 +26,8 @@ func (r *RoomController) GetAllPlaces(c *gin.Context) {
 
 func (r *RoomController) GetPlaceByID(c *gin.Context) {
 	id := c.Param("id")
-	var place models.Place
-	if err := r.DB.Where("id = ?", id).First(&place).Error; err != nil {
+	place, err := r.roomService.GetPlaceByID(id)
+	if err != nil {
 		c.JSON(404, gin.H{"error": "Place not found"})
 		return
 	}
@@ -35,8 +35,8 @@ func (r *RoomController) GetPlaceByID(c *gin.Context) {
 }
 
 func (r *RoomController) GetAllRooms(c *gin.Context) {
-	var rooms []models.Room
-	if err := r.DB.Find(&rooms).Error; err != nil {
+	rooms, err := r.roomService.GetAllRooms()
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -45,8 +45,8 @@ func (r *RoomController) GetAllRooms(c *gin.Context) {
 
 func (r *RoomController) GetRoomByID(c *gin.Context) {
 	id := c.Param("id")
-	var room models.Room
-	if err := r.DB.Where("id = ?", id).First(&room).Error; err != nil {
+	room, err := r.roomService.GetRoomByID(id)
+	if err != nil {
 		c.JSON(404, gin.H{"error": "Room not found"})
 		return
 	}
@@ -55,8 +55,8 @@ func (r *RoomController) GetRoomByID(c *gin.Context) {
 
 func (r *RoomController) GetRoomsByPlaceID(c *gin.Context) {
 	placeID := c.Param("place_id")
-	var rooms []models.Room
-	if err := r.DB.Where("place_id = ?", placeID).Find(&rooms).Error; err != nil {
+	rooms, err := r.roomService.GetRoomsByPlaceID(placeID)
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -65,8 +65,8 @@ func (r *RoomController) GetRoomsByPlaceID(c *gin.Context) {
 
 func (r *RoomController) GetRoomsByConsoleType(c *gin.Context) {
 	consoleType := c.Param("console_type")
-	var rooms []models.Room
-	if err := r.DB.Where("console_type = ?", consoleType).Find(&rooms).Error; err != nil {
+	rooms, err := r.roomService.GetRoomsByConsoleType(consoleType)
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}

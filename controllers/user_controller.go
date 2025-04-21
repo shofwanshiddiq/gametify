@@ -2,26 +2,26 @@ package controllers
 
 import (
 	"fmt"
+	"gametify/models"
+	"gametify/services"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"gorm.io/gorm"
-
-	"gametify/models"
 )
 
 type UserController struct {
-	DB *gorm.DB
+	service services.UserService
 }
 
-func NewUserController(db *gorm.DB) *UserController {
-	return &UserController{DB: db}
+func NewUserController(s services.UserService) *UserController {
+	return &UserController{service: s}
 }
 
 func (uc *UserController) GetAllUsers(c *gin.Context) {
-	var users []models.User
-	if err := uc.DB.Find(&users).Error; err != nil {
+	users, err := uc.service.GetAllUsers()
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
@@ -29,9 +29,15 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 }
 
 func (uc *UserController) GetUserByID(c *gin.Context) {
-	id := c.Param("id")
-	var user models.User
-	if err := uc.DB.Where("id = ?", id).First(&user).Error; err != nil {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid ID"})
+		return
+	}
+
+	user, err := uc.service.GetUserByID(uint(id))
+	if err != nil {
 		c.JSON(404, gin.H{"error": "User not found"})
 		return
 	}
@@ -39,43 +45,44 @@ func (uc *UserController) GetUserByID(c *gin.Context) {
 }
 
 func (uc *UserController) UpdateUser(c *gin.Context) {
-	id := c.Param("id")
-	var user models.User
-	if err := uc.DB.Where("id = ?", id).First(&user).Error; err != nil {
-		c.JSON(404, gin.H{"error": "User not found"})
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid ID"})
 		return
 	}
-	if err := c.ShouldBindJSON(&user); err != nil {
+
+	var updateData map[string]interface{}
+	if err := c.ShouldBindJSON(&updateData); err != nil {
 		c.JSON(400, gin.H{"error": err.Error()})
 		return
 	}
-	if err := uc.DB.Save(&user).Error; err != nil {
+
+	user := models.User{
+		Name:  updateData["name"].(string),
+		Email: updateData["email"].(string),
+	}
+
+	updated, err := uc.service.UpdateUser(uint(id), user)
+	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(200, user)
+	c.JSON(200, updated)
 }
 
 func (uc *UserController) DeleteUser(c *gin.Context) {
-	id := c.Param("id")
-	var user models.User
-
-	// Cek id user apakah ada di database
-	if err := uc.DB.Where("id = ?", id).First(&user).Error; err != nil {
-		if err == gorm.ErrRecordNotFound {
-			c.JSON(404, gin.H{"error": "User not found"})
-		} else {
-			c.JSON(500, gin.H{"error": err.Error()})
-		}
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 64)
+	if err != nil {
+		c.JSON(400, gin.H{"error": "Invalid ID"})
 		return
 	}
 
-	// delete user berdasarkan id
-	if err := uc.DB.Delete(&user).Error; err != nil {
+	if err := uc.service.DeleteUser(uint(id)); err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
-
 	c.JSON(200, gin.H{"message": "User deleted successfully"})
 }
 
@@ -85,37 +92,32 @@ func (uc *UserController) UploadProfilePicture(c *gin.Context) {
 		c.JSON(401, gin.H{"error": "Unauthorized"})
 		return
 	}
+
 	userID, ok := userIDInterface.(uint)
 	if !ok {
 		c.JSON(400, gin.H{"error": "Invalid user ID"})
 		return
 	}
+
 	file, err := c.FormFile("picture")
 	if err != nil {
 		c.JSON(400, gin.H{"error": "No file is uploaded"})
 		return
 	}
 
-	// validasi max 10 MB
-	const maxSize = 10 << 20
-	if file.Size > maxSize {
+	// Validate size (max 10MB)
+	if file.Size > 10<<20 {
 		c.JSON(400, gin.H{"error": "File is too large. Max 10MB allowed"})
 		return
 	}
 
-	// validasi file type
-	allowedExtensions := map[string]bool{
-		".png":  true,
-		".jpg":  true,
-		".jpeg": true,
-	}
+	// Validate type
 	ext := strings.ToLower(filepath.Ext(file.Filename))
-	if !allowedExtensions[ext] {
+	if ext != ".png" && ext != ".jpg" && ext != ".jpeg" {
 		c.JSON(400, gin.H{"error": "Invalid file type. Only PNG, JPG, JPEG allowed"})
 		return
 	}
 
-	// Save profile picture ke folder
 	savePath := fmt.Sprintf("uploads/profile_%d_%s", userID, file.Filename)
 
 	if err := c.SaveUploadedFile(file, savePath); err != nil {
@@ -123,17 +125,14 @@ func (uc *UserController) UploadProfilePicture(c *gin.Context) {
 		return
 	}
 
-	// Update user profile picture di DB
-	if err := uc.DB.Model(&models.User{}).
-		Where("id = ?", userID).
-		Update("profile_picture", savePath).Error; err != nil {
+	if err := uc.service.UploadProfilePicture(userID, savePath); err != nil {
 		c.JSON(500, gin.H{"error": "Failed to update user"})
 		return
 	}
 
 	c.JSON(200, gin.H{
 		"message": "Profile picture uploaded successfully",
-		"image":   "/" + savePath, // if you serve static files
+		"image":   "/" + savePath,
 	})
 }
 
@@ -150,19 +149,11 @@ func (uc *UserController) GetProfilePicture(c *gin.Context) {
 		return
 	}
 
-	var user models.User
-	if err := uc.DB.First(&user, userID).Error; err != nil {
-		c.JSON(404, gin.H{"error": "User not found"})
-		return
-	}
-
-	// Check if profile_picture exists
-	if user.ProfilePicture == "" {
+	picPath, err := uc.service.GetProfilePicture(userID)
+	if err != nil || picPath == "" {
 		c.JSON(404, gin.H{"error": "No profile picture found"})
 		return
 	}
 
-	c.JSON(200, gin.H{
-		"profile_picture": "/" + user.ProfilePicture,
-	})
+	c.JSON(200, gin.H{"profile_picture": "/" + picPath})
 }

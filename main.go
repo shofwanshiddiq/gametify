@@ -2,14 +2,17 @@ package main
 
 import (
 	"fmt"
-	"gametify/config"
-	"gametify/controllers"
-	"gametify/middleware"
-	"gametify/models"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+
+	"gametify/config"
+	"gametify/controllers"
+	"gametify/middleware"
+	"gametify/models"
+	"gametify/repositories"
+	"gametify/services"
 )
 
 /*
@@ -25,35 +28,42 @@ go get github.com/golang-jwt/jwt/v5 -- JWT
 */
 
 func main() {
-	// Load .env file configuration
-	err := godotenv.Load(".env")
-	if err != nil {
+	if err := godotenv.Load(".env"); err != nil {
 		panic("Failed to load .env file")
 	}
 
-	// Initialize Gin router
-	r := gin.Default()
-
-	// Connect to the database
 	db := config.ConnectDatabase()
 
-	// Auto migrate the models to database
-	db.AutoMigrate(&models.User{}, &models.Place{}, &models.Room{}, &models.Booking{}, &models.Package{})
+	db.AutoMigrate(
+		&models.User{},
+		&models.Place{},
+		&models.Room{},
+		&models.Booking{},
+		&models.Package{},
+	)
 
-	//  route
+	r := gin.Default()
+
+	userRepo := repositories.NewUserRepository(db)
+	authRepo := repositories.NewAuthRepository(db)
+	roomRepo := repositories.NewRoomRepository(db)
+	bookingRepo := repositories.NewBookingRepository(db)
+
+	userService := services.NewUserService(userRepo)
+	authService := services.NewAuthService(*authRepo)
+	roomService := services.NewRoomService(roomRepo)
+	bookingService := services.NewBookingService(bookingRepo)
+
+	userController := controllers.NewUserController(userService)
+	authController := controllers.NewAuthController(authService)
+	roomController := controllers.NewRoomController(roomService)
+	bookingController := controllers.NewBookingController(bookingService)
+
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Welcome to the Gametify API!",
-			"routes": []string{
-				"POST /login",
-				"POST /register",
-				"GET /rooms",
-				"POST /book",
-			},
 		})
 	})
-
-	authController := controllers.NewAuthController(db)
 
 	api := r.Group("/api")
 	{
@@ -67,30 +77,32 @@ func main() {
 	protected := api.Group("")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		protected.GET("/users", controllers.NewUserController(db).GetAllUsers)
-		protected.GET("/users/:id", controllers.NewUserController(db).GetUserByID)
-		protected.PUT("/users/:id", controllers.NewUserController(db).UpdateUser)
-		protected.POST("/users/profile-picture", controllers.NewUserController(db).UploadProfilePicture)
-		protected.GET("/users/profile-picture", controllers.NewUserController(db).GetProfilePicture)
-		protected.DELETE("/users/:id", controllers.NewUserController(db).DeleteUser)
-		protected.GET("/places", controllers.NewRoomController(db).GetAllPlaces)
-		protected.GET("/places/:id", controllers.NewRoomController(db).GetPlaceByID)
-		protected.GET("/rooms", controllers.NewRoomController(db).GetAllRooms)
-		protected.GET("/rooms/:id", controllers.NewRoomController(db).GetRoomByID)
-		protected.GET("/rooms/place/:place_id", controllers.NewRoomController(db).GetRoomsByPlaceID)
-		protected.GET("/rooms/console/:console_type", controllers.NewRoomController(db).GetRoomsByConsoleType)
-		protected.GET("/rooms/console", controllers.NewRoomController(db).GetConsoleTypes)
-		protected.GET("/bookings", controllers.NewBookingController(db).GetAllBookings)
-		protected.GET("/bookings/:id", controllers.NewBookingController(db).GetBookingByID)
-		protected.POST("/bookings", controllers.NewBookingController(db).CreateBooking)
-		protected.PATCH("/bookings/:id", controllers.NewBookingController(db).UpdateBookingStatus)
-		protected.POST("/bookings/:id/rate", controllers.NewBookingController(db).PostBookingRating)
-		protected.GET("/bookings/room/:room_id", controllers.NewBookingController(db).GetAverageRoomRating)
-		protected.GET("/bookings/place/:place_id", controllers.NewBookingController(db).GetAverageRatingByPlace)
+		protected.GET("/users", userController.GetAllUsers)
+		protected.GET("/users/:id", userController.GetUserByID)
+		protected.PUT("/users/:id", userController.UpdateUser)
+		protected.DELETE("/users/:id", userController.DeleteUser)
+		protected.POST("/users/profile-picture", userController.UploadProfilePicture)
+		protected.GET("/users/profile-picture", userController.GetProfilePicture)
+
+		protected.GET("/places", roomController.GetAllPlaces)
+		protected.GET("/places/:id", roomController.GetPlaceByID)
+		protected.GET("/rooms", roomController.GetAllRooms)
+		protected.GET("/rooms/:id", roomController.GetRoomByID)
+		protected.GET("/rooms/place/:place_id", roomController.GetRoomsByPlaceID)
+		protected.GET("/rooms/console/:console_type", roomController.GetRoomsByConsoleType)
+		protected.GET("/rooms/console", roomController.GetConsoleTypes)
+
+		protected.GET("/bookings", bookingController.GetAllBookings)
+		protected.GET("/bookings/:id", bookingController.GetBookingByID)
+		protected.POST("/bookings", bookingController.CreateBooking)
+		protected.PATCH("/bookings/:id", bookingController.UpdateBookingStatus)
+		protected.POST("/bookings/:id/rate", bookingController.PostBookingRating)
+		protected.GET("/bookings/room/:room_id", bookingController.GetAverageRoomRating)
+		protected.GET("/bookings/place/:place_id", bookingController.GetAverageRatingByPlace)
 	}
 
-	// Start server	on port 8080
+	// Start server
 	port := ":8080"
-	fmt.Println("✅ Server is running on http://localhost" + port)
+	fmt.Printf("✅ Server is running on http://localhost%s\n", port)
 	r.Run(port)
 }
