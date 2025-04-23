@@ -19,7 +19,23 @@ func NewUserController(s services.UserService) *UserController {
 	return &UserController{service: s}
 }
 
+// func (uc *UserController) GetAllUsers(c *gin.Context) {
+// 	users, err := uc.service.GetAllUsers()
+// 	if err != nil {
+// 		c.JSON(500, gin.H{"error": err.Error()})
+// 		return
+// 	}
+// 	c.JSON(200, users)
+// }
+
 func (uc *UserController) GetAllUsers(c *gin.Context) {
+
+	role, exists := c.Get("user_role")
+	if !exists || role != models.TypeAdmin {
+		c.JSON(403, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	users, err := uc.service.GetAllUsers()
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -29,6 +45,13 @@ func (uc *UserController) GetAllUsers(c *gin.Context) {
 }
 
 func (uc *UserController) GetUserByID(c *gin.Context) {
+
+	role, exists := c.Get("user_role")
+	if !exists || role != models.TypeAdmin {
+		c.JSON(403, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -45,6 +68,13 @@ func (uc *UserController) GetUserByID(c *gin.Context) {
 }
 
 func (uc *UserController) UpdateUser(c *gin.Context) {
+
+	role, exists := c.Get("user_role")
+	if !exists || role != models.TypeAdmin {
+		c.JSON(403, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -72,6 +102,13 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 }
 
 func (uc *UserController) DeleteUser(c *gin.Context) {
+
+	role, exists := c.Get("user_role")
+	if !exists || role != models.TypeAdmin {
+		c.JSON(403, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	idParam := c.Param("id")
 	id, err := strconv.ParseUint(idParam, 10, 64)
 	if err != nil {
@@ -156,4 +193,26 @@ func (uc *UserController) GetProfilePicture(c *gin.Context) {
 	}
 
 	c.JSON(200, gin.H{"profile_picture": "/" + picPath})
+}
+
+func (uc *UserController) GetProfileData(c *gin.Context) {
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(401, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID, ok := userIDInterface.(uint)
+	if !ok {
+		c.JSON(400, gin.H{"error": "Invalid user ID"})
+		return
+	}
+
+	user, err := uc.service.GetUserByID(userID)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, user)
 }

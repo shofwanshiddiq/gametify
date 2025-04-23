@@ -8,10 +8,9 @@ import (
 	"github.com/joho/godotenv"
 
 	"gametify/config"
-	"gametify/controllers"
-	"gametify/middleware"
 	"gametify/models"
 	"gametify/repositories"
+	"gametify/route"
 	"gametify/services"
 )
 
@@ -54,52 +53,13 @@ func main() {
 	roomService := services.NewRoomService(roomRepo)
 	bookingService := services.NewBookingService(bookingRepo)
 
-	userController := controllers.NewUserController(userService)
-	authController := controllers.NewAuthController(authService)
-	roomController := controllers.NewRoomController(roomService)
-	bookingController := controllers.NewBookingController(bookingService)
-
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
 			"message": "Welcome to the Gametify API!",
 		})
 	})
 
-	api := r.Group("/api")
-	{
-		auth := api.Group("/auth")
-		{
-			auth.POST("/register", authController.Register)
-			auth.POST("/login", authController.Login)
-		}
-	}
-
-	protected := api.Group("")
-	protected.Use(middleware.AuthMiddleware())
-	{
-		protected.GET("/users", userController.GetAllUsers)
-		protected.GET("/users/:id", userController.GetUserByID)
-		protected.PUT("/users/:id", userController.UpdateUser)
-		protected.DELETE("/users/:id", userController.DeleteUser)
-		protected.POST("/users/profile-picture", userController.UploadProfilePicture)
-		protected.GET("/users/profile-picture", userController.GetProfilePicture)
-
-		protected.GET("/places", roomController.GetAllPlaces)
-		protected.GET("/places/:id", roomController.GetPlaceByID)
-		protected.GET("/rooms", roomController.GetAllRooms)
-		protected.GET("/rooms/:id", roomController.GetRoomByID)
-		protected.GET("/rooms/place/:place_id", roomController.GetRoomsByPlaceID)
-		protected.GET("/rooms/console/:console_type", roomController.GetRoomsByConsoleType)
-		protected.GET("/rooms/console", roomController.GetConsoleTypes)
-
-		protected.GET("/bookings", bookingController.GetAllBookings)
-		protected.GET("/bookings/:id", bookingController.GetBookingByID)
-		protected.POST("/bookings", bookingController.CreateBooking)
-		protected.PATCH("/bookings/:id", bookingController.UpdateBookingStatus)
-		protected.POST("/bookings/:id/rate", bookingController.PostBookingRating)
-		protected.GET("/bookings/room/:room_id", bookingController.GetAverageRoomRating)
-		protected.GET("/bookings/place/:place_id", bookingController.GetAverageRatingByPlace)
-	}
+	route.SetupRoutes(r, userService, authService, roomService, bookingService, userRepo)
 
 	// Start server
 	port := ":8080"

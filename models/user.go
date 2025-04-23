@@ -12,12 +12,20 @@ password
 fullname
 */
 
+type RoleType string
+
+const (
+	TypeAdmin RoleType = "admin"
+	TypeUser  RoleType = "user"
+)
+
 type User struct {
 	gorm.Model
-	Name           string `json:"name"`
-	Email          string `json:"email" gorm:"unique"`
-	Password       string `json:"password"`
-	ProfilePicture string `json:"profile_picture"`
+	Name           string   `json:"name"`
+	Email          string   `json:"email" gorm:"unique"`
+	Password       string   `json:"password"`
+	ProfilePicture string   `json:"profile_picture"`
+	Role           RoleType `json:"role" gorm:"type:varchar(20)"`
 }
 
 type LoginRequest struct {
