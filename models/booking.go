@@ -16,10 +16,8 @@ total_price
 book_status
 */
 
-// BookStatus is a custom type for booking status
 type BookStatus string
 
-// Enum values for BookStatus
 const (
 	StatusPending   BookStatus = "SUBMITTED"
 	StatusConfirmed BookStatus = "CONFIRMED"
