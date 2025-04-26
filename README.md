@@ -9,7 +9,7 @@ This is a RESTful API built using Golang with Gin frameworks, GORM as ORM for My
 * Perform booking, finish booking, and post rating
 * Check booking history
 
-### Technical Feature
+### Technical Features
 * User registration with SHA-256 password hashing
 * User login with JWT-based authentication
 * Middleware for protected routes
