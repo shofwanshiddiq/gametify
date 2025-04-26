@@ -88,9 +88,13 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user := models.User{
-		Name:  updateData["name"].(string),
-		Email: updateData["email"].(string),
+	user := models.User{}
+
+	if name, ok := updateData["name"].(string); ok && name != "" {
+		user.Name = name
+	}
+	if email, ok := updateData["email"].(string); ok && email != "" {
+		user.Email = email
 	}
 
 	updated, err := uc.service.UpdateUser(uint(id), user)
@@ -98,6 +102,7 @@ func (uc *UserController) UpdateUser(c *gin.Context) {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(200, updated)
 }
 
