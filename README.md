@@ -58,5 +58,50 @@ This document provides an overview of the API endpoints, their methods, and func
 <img src="https://github.com/user-attachments/assets/04c6092e-d92a-43e2-bd58-24bc264e6ca2" alt="Capture9" width="150" style="border-radius: 20px;">
 <img src="https://github.com/user-attachments/assets/751f1043-b252-45c5-97cc-5e68e0de8117" alt="Capture9" width="150" style="border-radius: 20px;">
 
+## Initialization
+
+Follow these steps to set up the project:
+
+### 1. Initialize the Go Module
+Run the following command in the project directory:
+```sh
+git clone https://github.com/shofwanshiddiq/gametify
+go mod init gametify
+```
+
+### 2. Install Dependencies
+Install the required packages:
+
+```sh
+go get -u github.com/gin-gonic/gin
+go get -u gorm.io/gorm
+go get -u gorm.io/driver/mysql
+go get -u github.com/joho/godotenv
+go get github.com/golang-jwt/jwt/v5
+```
+
+### 3. Configure Database
+Create a .env file in the root directory and add your database credentials:
+
+```env
+DB_USER=root
+DB_PASSWORD=password
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=dbname
+
+JWT_SECRET_KEY=super_secret_key
+JWT_EXPIRATION_IN=24h
+```
+
+### 4. Run API
+```sh
+go run main.go
+```
+
+# API Testing
+Use this Postman documentation for endpoint testing
+[Here](https://.postman.co/workspace/Dibimbing-Golang~b5255e78-e541-48aa-a48f-df1842830c9c/collection/31117152-ce3df710-928d-4b76-935f-b9035e058c2f?action=share&creator=31117152
+)
 
 
